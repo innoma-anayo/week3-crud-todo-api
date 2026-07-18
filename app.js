@@ -3,12 +3,15 @@ require("dotenv").config();
 
 // Import Express
 const express = require("express");
+const logger = require("./middleware/logger");
+const todoSchema = require("./validators/todoValidator");
 
 // Create Express application
 const app = express();
 
 // Middleware to parse JSON request bodies
 app.use(express.json());
+app.use(logger);
 
 // Temporary database (Array)
 let todos = [
@@ -45,54 +48,75 @@ app.get("/todos/:id", (req, res) => {
     res.status(200).json(todo);
 });
 
-// POST a new todo
-app.post("/todos", (req, res) => {
+app.post("/todos", (req, res, next) => {
 
-    const { task } = req.body;
+    try {
 
-    // Validation
-    if (!task) {
-        return res.status(400).json({
-            message: "Task field is required"
-        });
+        const { error } = todoSchema.validate(req.body);
+
+        if (error) {
+            return res.status(400).json({
+                message: error.details[0].message
+            });
+        }
+
+        const { task } = req.body;
+
+        const newTodo = {
+            id: todos.length + 1,
+            task,
+            completed: false
+        };
+
+        todos.push(newTodo);
+
+        res.status(201).json(newTodo);
+
+    } catch (err) {
+        next(err);
     }
-
-    const newTodo = {
-        id: todos.length + 1,
-        task,
-        completed: false
-    };
-
-    todos.push(newTodo);
-
-    res.status(201).json(newTodo);
 
 });
 
-// UPDATE a todo
-app.patch("/todos/:id", (req, res) => {
+app.patch("/todos/:id", (req, res, next) => {
 
-    const id = parseInt(req.params.id);
+    try {
 
-    const todo = todos.find(todo => todo.id === id);
+        const id = parseInt(req.params.id);
 
-    if (!todo) {
-        return res.status(404).json({
-            message: "Todo not found"
-        });
+        const { error } = todoSchema.validate(req.body);
+
+        if (error) {
+            return res.status(400).json({
+                message: error.details[0].message
+            });
+        }
+
+        const todo = todos.find(todo => todo.id === id);
+
+        if (!todo) {
+            return res.status(404).json({
+                message: "Todo not found"
+            });
+        }
+
+        if (req.body.task !== undefined) {
+            todo.task = req.body.task;
+        }
+
+        if (req.body.completed !== undefined) {
+            todo.completed = req.body.completed;
+        }
+
+        res.status(200).json(todo);
+
+    } catch (err) {
+        next(err);
     }
-
-    if (req.body.task !== undefined) {
-        todo.task = req.body.task;
-    }
-
-    if (req.body.completed !== undefined) {
-        todo.completed = req.body.completed;
-    }
-
-    res.status(200).json(todo);
 
 });
+
+
 
 // DELETE a todo
 app.delete("/todos/:id", (req, res) => {
