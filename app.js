@@ -27,25 +27,30 @@ app.get("/", (req, res) => {
     res.send("Welcome to Week 3 CRUD API");
 });
 
+// Home Route
+app.get("/", (req, res) => {
+    res.send("Welcome to Week 3 CRUD API");
+});
+
 // GET all todos
 app.get("/todos", (req, res) => {
     res.status(200).json(todos);
 });
 
+// BONUS: Get active todos
+app.get("/todos/active", (req, res) => {
+
+    const activeTodos = todos.filter(todo => !todo.completed);
+
+    res.status(200).json(activeTodos);
+
+});
+
 // GET a single todo by ID
 app.get("/todos/:id", (req, res) => {
 
-    const id = parseInt(req.params.id);
+    // your existing code here
 
-    const todo = todos.find(todo => todo.id === id);
-
-    if (!todo) {
-        return res.status(404).json({
-            message: "Todo not found"
-        });
-    }
-
-    res.status(200).json(todo);
 });
 
 app.post("/todos", (req, res, next) => {
@@ -147,6 +152,15 @@ app.get("/todos/active", (req, res) => {
 });
 
 // Start server
+app.use((err, req, res, next) => {
+
+    console.error(err.stack);
+
+    res.status(500).json({
+        message: "Internal Server Error"
+    });
+
+});
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
